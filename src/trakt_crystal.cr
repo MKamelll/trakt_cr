@@ -17,7 +17,7 @@ class AuthCredentials
   property access_token
   property refresh_token
 
-  def initialize(@client_id : String, @client_secret : String, access_token : String, refresh_token : String)
+  def initialize(@client_id : String, @client_secret : String, @access_token : String, @refresh_token : String)
   end
 end
 
@@ -85,6 +85,12 @@ class Trakt
       "trakt-api-version" => "2",
       "trakt-api-key" => @credentials.client_id
     }
+    @headers_with_token = HTTP::Headers {
+      "Content-Type" => "application/json",
+      "trakt-api-version" => "2",
+      "trakt-api-key" => @credentials.client_id,
+      "Authorization" => "Bearer #{@credentials.access_token}"
+    }
     @base_list_url = "https://api.trakt.tv/lists"
   end
 
@@ -99,7 +105,7 @@ class Trakt
       raise AccessTokenInvalid.new
     end
 
-    return JSON.parse(response.body)
+    return response
   end
 
   def get_popular_lists(pagination : Bool = false)
@@ -113,7 +119,7 @@ class Trakt
       raise AccessTokenInvalid.new
     end
 
-    return JSON.parse(response.body)
+    return response
   end
 
   def get_list_by_id(id : Int64)
@@ -123,7 +129,7 @@ class Trakt
       raise AccessTokenInvalid.new
     end
 
-    return JSON.parse(response.body)
+    return response
   end
 
   def get_items_of_list_by_id(id : Int64)
@@ -133,7 +139,7 @@ class Trakt
       raise AccessTokenInvalid.new
     end
 
-    return JSON.parse(response.body)
+    return response
   end
 
   def get_users_that_like_list_by_id(id : Int64, pagination : Bool = false)
@@ -143,7 +149,17 @@ class Trakt
       raise AccessTokenInvalid.new
     end
 
-    return JSON.parse(response.body)
+    return response
+  end
+
+  def like_a_list_by_id(id : Int64)
+    like_a_list_url = "#{@base_list_url}/#{id}/like"
+    response = HTTP::Client.post(like_a_list_url, headers: @headers_with_token)
+    if response.status_code >= 400
+      raise AccessTokenInvalid.new
+    end
+
+    return response
   end
 end
 
@@ -162,7 +178,7 @@ def main
   credentials = AuthCredentials.new(client_id, client_secret, access_token, refresh_token)
   trakt = Trakt.new(credentials)
 
-  puts trakt.get_trending_lists(pagination=true)
+  puts trakt.like_a_list_by_id(20388873)
 end
 
 main()
