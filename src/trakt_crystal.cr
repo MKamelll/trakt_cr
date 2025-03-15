@@ -161,6 +161,16 @@ class Trakt
 
     return response
   end
+
+  def unlike_a_list_by_id(id : Int64)
+    unlike_a_list_url = "#{@base_list_url}/#{id}/like"
+    response = HTTP::Client.delete(unlike_a_list_url, headers: @headers_with_token)
+    if response.status_code >= 400
+      raise AccessTokenInvalid.new
+    end
+
+    return response
+  end
 end
 
 def main
@@ -178,7 +188,7 @@ def main
   credentials = AuthCredentials.new(client_id, client_secret, access_token, refresh_token)
   trakt = Trakt.new(credentials)
 
-  puts trakt.like_a_list_by_id(20388873)
+  puts trakt.unlike_a_list_by_id(20388873).status_code
 end
 
 main()
