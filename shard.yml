@@ -1,0 +1,14 @@
+name: trakt_crystal
+version: 0.1.0
+
+authors:
+  - Mina Kamel <minallkamel@gmail.com>
+
+crystal: '>= 1.11.2'
+
+dependencies:
+dependencies:
+  dotenv:
+    github: drum445/dotenv
+    
+license: MIT
