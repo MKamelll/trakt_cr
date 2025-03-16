@@ -8,9 +8,6 @@ end
 class AuthCodeCannotBeEmpty < Exception
 end
 
-class AccessTokenInvalid < Exception
-end
-
 class AuthCredentials
   property client_id
   property client_secret
@@ -24,36 +21,26 @@ end
 class Auth
   property base_url = "https://api.trakt.tv"
   property redirect_uri = "http://localhost:8080"
-  property auth_code = ""
-  property access_token = ""
-  property refresh_token = ""
   
-  def initialize(@client_id : String, @client_secret : String, @access_token : String ="", @refresh_token : String = "")
+  def initialize(@client_id : String, @client_secret : String)
+    @access_token_url = "#{@base_url}/oauth/token"
   end
 
-  def authorize : Auth
+  def get_auth_code
     auth_code_url = "#{@base_url}/oauth/authorize?response_type=code&client_id=#{@client_id}&redirect_uri=#{@redirect_uri}&state=%20"
     puts "Please visit this url and paste the redircted url you receive."
     puts auth_code_url
     print "> "
     
-    if redirected_uri = gets
-      auth_code = redirected_uri.chomp.sub("#{@redirect_uri}/?code=", "")
-      @auth_code = auth_code
-      return self
-    end
-      raise RedirectedUriCannotBeEmpty.new
+    redirected_uri = gets
+    
+    return (redirected_uri || "").chomp.sub("#{@redirect_uri}/?code=", "")
   end
 
-  def get_access_token : Auth
-    access_token_url = "#{@base_url}/oauth/token"
-
-    if @auth_code.empty?
-      raise AuthCodeCannotBeEmpty.new
-    end
+  def get_access_token(auth_code : String)
     
     body = {
-      "code" => @auth_code,
+      "code" => auth_code,
       "client_id" => @client_id,
       "client_secret" => @client_secret,
       "redirect_uri" => @redirect_uri,
@@ -64,14 +51,23 @@ class Auth
       "Content-Type" => "application/json"
     }
 
-    response = HTTP::Client.post(access_token_url, headers: headers, body: body.to_json)
-    if response.status_code == 200
-      response_js = JSON.parse(response.body)
-      @access_token = response_js["access_token"].as_s
-      @refresh_token = response_js["refresh_token"].as_s
-    end
+    return HTTP::Client.post(@access_token_url, headers: headers, body: body.to_json)
+  end
 
-    return self
+  def refresh_access_token(refresh_token : String)
+    body = {
+      "refresh_token" => refresh_token,
+      "client_id" => @client_id,
+      "client_secret" => @client_secret,
+      "redirect_uri" => @redirect_uri,
+      "grant_type" => "refresh_token"
+    }
+
+    headers = HTTP::Headers{
+      "Content-Type" => "application/json"
+    }
+
+    return HTTP::Client.post(@access_token_url, headers: headers, body: body.to_json)
   end
 end
 
@@ -85,15 +81,29 @@ class Trakt
       "trakt-api-version" => "2",
       "trakt-api-key" => @credentials.client_id
     }
-    @headers_with_token = HTTP::Headers {
-      "Content-Type" => "application/json",
-      "trakt-api-version" => "2",
-      "trakt-api-key" => @credentials.client_id,
-      "Authorization" => "Bearer #{@credentials.access_token}"
-    }
+
     @base_list_url = "https://api.trakt.tv/lists"
   end
 
+  def headers_with_token : HTTP::Headers
+    headers_cpy = @headers.dup
+    headers_cpy["Authorization"] = "Bearer #{@credentials.access_token}"
+    return headers_cpy
+  end
+
+  def headers_with(key : String, value : String) : HTTP::Headers
+    headers_cpy = @headers.dup
+    headers_cpy[key] = value
+    return headers_cpy
+  end
+
+  def headers_with_pagination : HTTP::Headers
+    headers_cpy = @headers.dup
+    headers_cpy["X-Pagination-Page"] = "#{num_of_pages}"
+    headers_cpy["X-Pagination-Limit"] = "#{num_of_results_per_page}"
+    return headers_cpy
+  end
+  
   def get_trending_lists(pagination : Bool = false)
     if !pagination
       trending_url = "#{@base_list_url}/trending"
@@ -132,16 +142,6 @@ class Trakt
     return response
   end
 
-  def get_items_of_list_by_id(id : Int64)
-    list_url = "#{@base_list_url}/#{id}/items"
-    response = HTTP::Client.get(list_url, headers: @headers)
-    if response.status_code >= 400
-      raise AccessTokenInvalid.new
-    end
-
-    return response
-  end
-
   def get_users_that_like_list_by_id(id : Int64, pagination : Bool = false)
     likes = "#{@base_list_url}/#{id}/likes"
     response = HTTP::Client.get(list_url, headers: @headers)
@@ -164,12 +164,32 @@ class Trakt
 
   def unlike_a_list_by_id(id : Int64)
     unlike_a_list_url = "#{@base_list_url}/#{id}/like"
-    response = HTTP::Client.delete(unlike_a_list_url, headers: @headers_with_token)
+    response = HTTP::Client.delete(unlike_a_list_url, headers: headers_with_token())
     if response.status_code >= 400
       raise AccessTokenInvalid.new
     end
 
     return response
+  end
+  
+  def get_items_on_a_list_by_id(id : Int64, type : String = "", sorting_by : String = "", sorting_how : String = "")
+    items_on_a_list_url = "#{@base_list_url}/#{id}/items/#{type}"
+    headers = sorting_by.empty? ? @headers : headers_with("X-Sort-By", sorting_by)
+    headers = sorting_how.empty? ? @headers : headers_with("X-Sort-How", sorting_how)
+    
+    response = HTTP::Client.get(items_on_a_list_url, headers: headers)
+    if response.status_code >= 400
+      raise AccessTokenInvalid.new
+    end
+
+    return response
+  end
+
+  def get_all_list_comments_by_list_id(id : Int64, sorting_by : String = "", pagination : Bool = false)
+    list_comments_url = "#{@base_list_url}/#{id}/comments/#{sorting_by}"
+    headers = pagination ? headers_with_pagination() : headers_with_token
+    puts list_comments_url
+    return HTTP::Client.get(list_comments_url, headers: headers)
   end
 end
 
@@ -179,6 +199,7 @@ def main
   client_secret = ENV["client_secret"]
   access_token = ENV["access_token"]
   refresh_token = ENV["refresh_token"]
+  auth_code = ENV["auth_code"]
 
 #  auth = Auth.new(client_id, client_secret).authorize.get_access_token
 
@@ -188,7 +209,15 @@ def main
   credentials = AuthCredentials.new(client_id, client_secret, access_token, refresh_token)
   trakt = Trakt.new(credentials)
 
-  puts trakt.unlike_a_list_by_id(20388873).status_code
+  list_id = 20388873
+  #puts trakt.unlike_a_list_by_id(20388873).status_code
+  #puts trakt.get_items_on_a_list_by_id(list_id, sorting_by: "title").body.to_pretty_json
+  #auth = Auth.new(client_id, client_secret)
+  #puts auth.refresh_access_token(refresh_token).body.to_json
+  #puts auth.get_auth_code
+  #puts auth.get_access_token(auth_code).body.to_pretty_json
+  
+  #puts trakt.get_all_list_comments_by_list_id(list_id, sorting_by: "newest").body.to_pretty_json
 end
 
 main()
