@@ -209,6 +209,35 @@ class Trakt
     headers = pagination ? headers_with_pagination() : @headers
     return HTTP::Client.get(most_favourited_movies_url, headers)
   end
+
+  def get_the_most_played_movies(pagination : Bool = false, period : String = "")
+    most_played_movies_url = "#{@base_movies_url}/played/#{period}"
+    headers = pagination ? headers_with_pagination() : @headers
+    return HTTP::Client.get(most_played_movies_url, headers)
+  end
+
+  def get_the_most_watched_movies(pagination : Bool = false, period : String = "")
+    most_watched_movies_url = "#{@base_movies_url}/watched/#{period}"
+    headers = pagination ? headers_with_pagination() : @headers
+    return HTTP::Client.get(most_watched_movies_url, headers)
+  end
+
+  def get_the_most_collected_movies(pagination : Bool = false, period : String = "")
+    most_collected_movies_url = "#{@base_movies_url}/collected/#{period}"
+    headers = pagination ? headers_with_pagination() : @headers
+    return HTTP::Client.get(most_collected_movies_url, headers)
+  end
+
+  def get_the_most_anticipated_movies(pagination : Bool = false)
+    most_anticipated_movies_url = "#{@base_movies_url}/anticipated"
+    headers = pagination ? headers_with_pagination() : @headers
+    return HTTP::Client.get(most_anticipated_movies_url, headers)
+  end
+
+  def get_the_boxoffice_movies
+    boxoffice_movies_url = "#{@base_movies_url}/boxoffice"
+    return HTTP::Client.get(boxoffice_movies_url, @headers)
+  end
 end
 
 def main
@@ -238,7 +267,7 @@ def main
   #puts trakt.get_all_list_comments_by_list_id(list_id, sorting_by: "newest").body.to_pretty_json
   #puts trakt.get_trending_movies(pagination: true).body
   #puts trakt.get_popular_movies(pagination: true).body
-  puts trakt.get_the_most_favourited_movies(pagination: true).body
+  #puts trakt.get_the_most_collected_movies(pagination: true).body
 end
 
 main()
