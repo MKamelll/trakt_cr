@@ -83,6 +83,7 @@ class Trakt
     }
 
     @base_list_url = "https://api.trakt.tv/lists"
+    @base_movies_url = "https://api.trakt.tv/movies"
   end
 
   def headers_with_token : HTTP::Headers
@@ -187,9 +188,20 @@ class Trakt
 
   def get_all_list_comments_by_list_id(id : Int64, sorting_by : String = "", pagination : Bool = false)
     list_comments_url = "#{@base_list_url}/#{id}/comments/#{sorting_by}"
-    headers = pagination ? headers_with_pagination() : headers_with_token
-    puts list_comments_url
+    headers = pagination ? headers_with_pagination() : headers_with_token()
     return HTTP::Client.get(list_comments_url, headers: headers)
+  end
+
+  def get_trending_movies(pagination : Bool = false)
+    trending_movies_url = "#{@base_movies_url}/trending"
+    headers = pagination ? headers_with_pagination() : @headers
+    return HTTP::Client.get(trending_movies_url, headers)
+  end
+
+  def get_popular_movies(pagination : Bool = false)
+    popular_movies_url = "#{@base_movies_url}/popular"
+    headers = pagination ? headers_with_pagination() : @headers
+    return HTTP::Client.get(popular_movies_url, headers)
   end
 end
 
@@ -218,6 +230,8 @@ def main
   #puts auth.get_access_token(auth_code).body.to_pretty_json
   
   #puts trakt.get_all_list_comments_by_list_id(list_id, sorting_by: "newest").body.to_pretty_json
+  #puts trakt.get_trending_movies(pagination: true).body
+  puts trakt.get_popular_movies(pagination: true).body
 end
 
 main()
