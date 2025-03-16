@@ -203,6 +203,12 @@ class Trakt
     headers = pagination ? headers_with_pagination() : @headers
     return HTTP::Client.get(popular_movies_url, headers)
   end
+
+  def get_the_most_favourited_movies(pagination : Bool = false, period : String = "")
+    most_favourited_movies_url = "#{@base_movies_url}/favorited/#{period}"
+    headers = pagination ? headers_with_pagination() : @headers
+    return HTTP::Client.get(most_favourited_movies_url, headers)
+  end
 end
 
 def main
@@ -231,7 +237,8 @@ def main
   
   #puts trakt.get_all_list_comments_by_list_id(list_id, sorting_by: "newest").body.to_pretty_json
   #puts trakt.get_trending_movies(pagination: true).body
-  puts trakt.get_popular_movies(pagination: true).body
+  #puts trakt.get_popular_movies(pagination: true).body
+  puts trakt.get_the_most_favourited_movies(pagination: true).body
 end
 
 main()
