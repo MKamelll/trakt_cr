@@ -86,8 +86,9 @@ class Trakt
       "trakt-api-key"     => @credentials.client_id,
     }
 
-    @base_list_url = "https://api.trakt.tv/lists"
-    @base_movies_url = "https://api.trakt.tv/movies"
+    @base_url = "https://api.trakt.tv"
+    @base_list_url = "#{@base_url}/lists"
+    @base_movies_url = "#{@base_url}/movies"
   end
 
   def add_authorization_header(headers : HTTP::Headers) : HTTP::Headers
@@ -228,6 +229,47 @@ class Trakt
     headers = pagination ? add_pagination_header(@headers) : @headers
     return HTTP::Client.get(lists_url, headers)
   end
+
+  def get_all_people_of_movie(id : Int64)
+    people_url = "#{@base_movies_url}/#{id}/people"
+    return HTTP::Client.get(people_url, @headers)
+  end
+
+  def get_movie_rating(id : Int64 | String)
+    rating_url = "#{@base_movies_url}/#{id}/ratings"
+    return HTTP::Client.get(rating_url, @headers)
+  end
+
+  def get_related_movies_to(id : Int64 | String)
+    related_url = "#{@base_movies_url}/#{id}/related"
+    return HTTP::Client.get(related_url, @headers)
+  end
+
+  def get_movie_stats(id : Int64 | String)
+    movie_stats_url = "#{@base_movies_url}/#{id}/stats"
+    return HTTP::Client.get(movie_stats_url, @headers)
+  end
+
+  def get_movie_studios(id : Int64 | String)
+    movie_studio_url = "#{@base_movies_url}/#{id}/studios"
+    return HTTP::Client.get(movie_studio_url, @headers)
+  end
+
+  def get_users_watching_movie(id : Int64 | String)
+    movie_users_url = "#{@base_movies_url}/#{id}/watching"
+    return HTTP::Client.get(movie_users_url, @headers)
+  end
+
+  def get_all_videos_concerned_with_movie(id : Int64 | String)
+    movie_videos_url = "#{@base_movies_url}/#{id}/videos"
+    return HTTP::Client.get(movie_videos_url, @headers)
+  end
+
+  def get_all_networks(pagination : Bool = false)
+    network_url = "#{@base_url}/networks"
+    headers = pagination ? add_pagination_header(@headers) : @headers
+    return HTTP::Client.get(network_url, headers)
+  end
 end
 
 def main
@@ -248,7 +290,9 @@ def main
 
   # list_id = 20388873
   # puts trakt.get_all_movie_comments(1).body.to_pretty_json
-  puts trakt.get_all_lists_containing_movie(1, pagination: true).body
+  # puts trakt.get_all_lists_containing_movie(1, pagination: true).body
+  movie = "tron-legacy-2010"
+  puts trakt.get_all_networks(pagination: true).body
 end
 
 main()
