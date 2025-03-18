@@ -21,7 +21,7 @@ end
 class Auth
   property base_url = "https://api.trakt.tv"
   property redirect_uri = "http://localhost:8080"
-  
+
   def initialize(@client_id : String, @client_secret : String)
     @access_token_url = "#{@base_url}/oauth/token"
   end
@@ -31,14 +31,14 @@ class Auth
     puts "Please visit this url and paste the redircted url you receive."
     puts auth_code_url
     print "> "
-    
+
     redirected_uri = gets
-    
+
     return (redirected_uri || "").chomp.sub("#{@redirect_uri}/?code=", "")
   end
 
   def get_access_token(auth_code : String)
-    
+
     body = {
       "code" => auth_code,
       "client_id" => @client_id,
@@ -104,7 +104,7 @@ class Trakt
     headers_cpy["X-Pagination-Limit"] = "#{num_of_results_per_page}"
     return headers_cpy
   end
-  
+
   def get_trending_lists(pagination : Bool = false)
     if !pagination
       trending_url = "#{@base_list_url}/trending"
@@ -172,12 +172,12 @@ class Trakt
 
     return response
   end
-  
+
   def get_items_on_a_list_by_id(id : Int64, type : String = "", sorting_by : String = "", sorting_how : String = "")
     items_on_a_list_url = "#{@base_list_url}/#{id}/items/#{type}"
     headers = sorting_by.empty? ? @headers : headers_with("X-Sort-By", sorting_by)
     headers = sorting_how.empty? ? @headers : headers_with("X-Sort-How", sorting_how)
-    
+
     response = HTTP::Client.get(items_on_a_list_url, headers: headers)
     if response.status_code >= 400
       raise AccessTokenInvalid.new
@@ -238,6 +238,16 @@ class Trakt
     boxoffice_movies_url = "#{@base_movies_url}/boxoffice"
     return HTTP::Client.get(boxoffice_movies_url, @headers)
   end
+
+  def get_movie_details(id : Int64)
+    movie_summary_url = "#{@base_movies_url}/#{id}"
+    return HTTP::Client.get(movie_summary_url, @headers)
+  end
+
+  def get_all_movie_aliases(id : Int64)
+    movie_aliases_url = "#{@base_movies_url}/#{id}"
+    return HTTP::Client.get(movie_aliases_url, @headers)
+  end
 end
 
 def main
@@ -263,11 +273,12 @@ def main
   #puts auth.refresh_access_token(refresh_token).body.to_json
   #puts auth.get_auth_code
   #puts auth.get_access_token(auth_code).body.to_pretty_json
-  
+
   #puts trakt.get_all_list_comments_by_list_id(list_id, sorting_by: "newest").body.to_pretty_json
   #puts trakt.get_trending_movies(pagination: true).body
   #puts trakt.get_popular_movies(pagination: true).body
   #puts trakt.get_the_most_collected_movies(pagination: true).body
+  puts trakt.get_all_movie_aliases(1).body.to_pretty_json
 end
 
 main()
