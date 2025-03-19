@@ -91,6 +91,7 @@ class Trakt
     @base_movies_url = "#{@base_url}/movies"
     @base_people_url = "#{@base_url}/people"
     @base_recommendations_url = "#{@base_url}/recommendations"
+    @base_search_url = "#{@base_url}/search"
   end
 
   def add_authorization_header(headers : HTTP::Headers) : HTTP::Headers
@@ -313,6 +314,13 @@ class Trakt
     return HTTP::Client.get(recommendations_url, add_authorization_header(headers))
   end
 
+  def search(query : String, type : String = "", fields : String = "")
+    search_url = "#{@base_search_url}/#{type}?query=#{URI.encode_path(query)}"
+    if !fields.empty?
+        search_url += fields
+    end
+    return HTTP::Client.get(search_url, @headers)
+  end
 end
 
 def main
@@ -341,6 +349,7 @@ def main
   #puts trakt.get_person_details(person).body
   #puts trakt.get_all_lists_containing_person(person, pagination: true).body
   #puts trakt.get_show_recommendations(pagination: true).body
+  puts trakt.search("dark knight").body
 end
 
 main()
