@@ -90,6 +90,7 @@ class Trakt
     @base_list_url = "#{@base_url}/lists"
     @base_movies_url = "#{@base_url}/movies"
     @base_people_url = "#{@base_url}/people"
+    @base_recommendations_url = "#{@base_url}/recommendations"
   end
 
   def add_authorization_header(headers : HTTP::Headers) : HTTP::Headers
@@ -283,6 +284,35 @@ class Trakt
     person_details_url = "#{@base_people_url}/#{id}"
     return HTTP::Client.get(person_details_url, @headers)
   end
+
+  def get_all_movies_of_person(id : Int64 | String)
+    movies_url = "#{@base_people_url}/#{id}/movies"
+    return HTTP::Client.get(movies_url, @headers)
+  end
+
+  def get_all_shows_of_person(id : Int64 | String)
+    shows_url = "#{@base_people_url}/#{id}/shows"
+    return HTTP::Client.get(shows_url, @headers)
+  end
+
+  def get_all_lists_containing_person(id : Int64 | String, pagination : Bool = false, type : String = "", sorting_by : String = "")
+    all_lists_url = "#{@base_people_url}/#{id}/lists/#{type}/#{sorting_by}"
+    headers = pagination ? add_pagination_header(@headers) : @headers
+    return HTTP::Client.get(all_lists_url, headers)
+  end
+
+  def get_movie_recommendations(pagination : Bool = false, ignore_collected : Bool = false, ignore_watchlist : Bool = false)
+    recommendations_url = "#{@base_recommendations_url}/movies/?ignore_collected=#{ignore_collected}&ignore_watchlist=#{ignore_watchlist}"
+    headers = pagination ? add_pagination_header(@headers) : @headers
+    return HTTP::Client.get(recommendations_url, add_authorization_header(headers))
+  end
+
+  def get_show_recommendations(pagination : Bool = false, ignore_collected : Bool = false, ignore_watchlist : Bool = false)
+    recommendations_url = "#{@base_recommendations_url}/shows/?ignore_collected=#{ignore_collected}&ignore_watchlist=#{ignore_watchlist}"
+    headers = pagination ? add_pagination_header(@headers) : @headers
+    return HTTP::Client.get(recommendations_url, add_authorization_header(headers))
+  end
+
 end
 
 def main
@@ -308,7 +338,9 @@ def main
   person = "bryan-cranston"
   #puts trakt.get_all_networks(pagination: true).body
   #puts trakt.get_recently_updated_people.body
-  puts trakt.get_person_details(person).body
+  #puts trakt.get_person_details(person).body
+  #puts trakt.get_all_lists_containing_person(person, pagination: true).body
+  #puts trakt.get_show_recommendations(pagination: true).body
 end
 
 main()
