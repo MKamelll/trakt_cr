@@ -89,6 +89,7 @@ class Trakt
     @base_url = "https://api.trakt.tv"
     @base_list_url = "#{@base_url}/lists"
     @base_movies_url = "#{@base_url}/movies"
+    @base_people_url = "#{@base_url}/people"
   end
 
   def add_authorization_header(headers : HTTP::Headers) : HTTP::Headers
@@ -97,8 +98,8 @@ class Trakt
     return headers_cpy
   end
 
-  def headers_with(key : String, value : String) : HTTP::Headers
-    headers_cpy = @headers.dup
+  def headers_with(headers : HTTP::Headers, key : String, value : String) : HTTP::Headers
+    headers_cpy = headers.dup
     headers_cpy[key] = value
     return headers_cpy
   end
@@ -270,6 +271,18 @@ class Trakt
     headers = pagination ? add_pagination_header(@headers) : @headers
     return HTTP::Client.get(network_url, headers)
   end
+
+  def get_recently_updated_people(start_date : String = "", pagination : Bool = false)
+    start_date_used = start_date.empty? ? Time.utc.to_s("%Y-%m-%dT%H:00:00Z") : start_date
+    updated_people_url = "#{@base_people_url}/updates/#{start_date_used}"
+    headers = pagination ? add_pagination_header(@headers) : @headers
+    return HTTP::Client.get(updated_people_url, headers)
+  end
+
+  def get_person_details(id : Int64 | String)
+    person_details_url = "#{@base_people_url}/#{id}"
+    return HTTP::Client.get(person_details_url, @headers)
+  end
 end
 
 def main
@@ -292,7 +305,10 @@ def main
   # puts trakt.get_all_movie_comments(1).body.to_pretty_json
   # puts trakt.get_all_lists_containing_movie(1, pagination: true).body
   movie = "tron-legacy-2010"
-  puts trakt.get_all_networks(pagination: true).body
+  person = "bryan-cranston"
+  #puts trakt.get_all_networks(pagination: true).body
+  #puts trakt.get_recently_updated_people.body
+  puts trakt.get_person_details(person).body
 end
 
 main()
